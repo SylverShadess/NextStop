@@ -3,9 +3,9 @@ from App.database import db
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    username =  db.Column(db.String(20), nullable=False, unique=True)
+    username = db.Column(db.String(20), nullable=False, unique=True)
     password = db.Column(db.String(120), nullable=False)
-
+ 
     def __init__(self, username, password):
         self.username = username
         self.set_password(password)
@@ -24,3 +24,22 @@ class User(db.Model):
         """Check hashed password."""
         return check_password_hash(self.password, password)
 
+class Driver(User):
+    full_name = db.Column(db.String(100), nullable=True)
+    license_no = db.Column(db.String(50), nullable=True)
+
+    def __init__(self, username, password, full_name=None, license_no=None):
+        super().__init__(username, password)
+        self.full_name = full_name
+        self.license_no = license_no
+
+    def select_route(self):
+        pass
+    
+    def get_json(self):
+        return{
+            'id': self.id,
+            'username': self.username,
+            'full_name': self.full_name,
+            'license_no': self.license_no
+        }
