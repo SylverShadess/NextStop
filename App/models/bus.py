@@ -1,7 +1,4 @@
 from App.database import db
-from App.models.route import Route
-from App.models.bus_event import BusEvent
-from App.models.board_event import BoardEvent
 
 class Bus(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -10,8 +7,10 @@ class Bus(db.Model):
     route_id = db.Column(db.Integer, db.ForeignKey('route.id'))
     passenger_count = db.Column(db.Integer, nullable=False, default=0)
     
-    driver = db.relationship('User', backref='buses')
-    route = db.relationship('Route', backref='buses')
+    driver = db.relationship('Driver', back_populates='buses')
+    route = db.relationship('Route', back_populates='buses')
+    board_events = db.relationship('BoardEvent', back_populates='bus')
+    journeys = db.relationship('Journey', back_populates='bus')
     
     def __init__(self, plate_num, driver=None, route=None):
         self.plate_num = plate_num
@@ -28,37 +27,8 @@ class Bus(db.Model):
             'passenger_count': self.passenger_count
         }
     
-    def select_route(self, route_id):
-        self.route_id = route_id
-    
-    def update_passenger_count(self, type, qty, stop_id):
-        if(type == "Enter"):
-            self.passenger_count += qty
-            board_event = BoardEvent(self, "Enter", qty, stop_id)
-            db.session.add(board_event)
-            db.session.commit()
-        elif(type == "Exit"):
-            self.passenger_count -= qty
-            board_event = BoardEvent(self, "Exit", qty, stop_id)
-            db.session.add(board_event)
-            db.session.commit()
-
-    def log_bus_position(self, lat, lng):
-        bus_event = BusEvent(self, lat, lng)
-        db.session.add(bus_event)
+    def selectRoute(self, route):
+        self.route = route
+        bus = Bus.query.get(self.id)
+        bus.route = route
         db.session.commit()
-
-        
-    def query_arrival_times(self):
-        # Call the bus location events for when the bus was at a stop on the route to compare if the bus is on time
-        pass
-    
-    def query_total_boards(self):
-        # Call the board events for the bus to get the total number of boards during the route
-        pass 
-
-    # Temp name; needs to change to something more clear
-    # Supposed to be the process of the bus on the route
-    # Dunno what to name it tbh 
-    def query_busline(self):
-        pass 

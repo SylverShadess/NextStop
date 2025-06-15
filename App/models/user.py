@@ -1,5 +1,6 @@
 from werkzeug.security import check_password_hash, generate_password_hash
 from App.database import db
+from App.models.Location import Location
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -23,23 +24,26 @@ class User(db.Model):
     def check_password(self, password):
         """Check hashed password."""
         return check_password_hash(self.password, password)
+        
+    def getLocations(self):
+        return db.session.query(Location).all()
 
 class Driver(User):
-    full_name = db.Column(db.String(100), nullable=True)
-    license_no = db.Column(db.String(50), nullable=True)
+    full_Name = db.Column(db.String(100), nullable=True)
+    licenseNo = db.Column(db.String(50), nullable=True)
+    
+    buses = db.relationship('Bus', back_populates='driver')
+    journeys = db.relationship('Journey', back_populates='driver')
 
-    def __init__(self, username, password, full_name=None, license_no=None):
+    def __init__(self, username, password, full_Name=None, licenseNo=None):
         super().__init__(username, password)
-        self.full_name = full_name
-        self.license_no = license_no
-
-    def select_route(self):
-        pass
+        self.full_Name = full_Name
+        self.licenseNo = licenseNo
     
     def get_json(self):
         return{
             'id': self.id,
             'username': self.username,
-            'full_name': self.full_name,
-            'license_no': self.license_no
-        }
+            'full_Name': self.full_Name,
+            'licenseNo': self.licenseNo
+        }  

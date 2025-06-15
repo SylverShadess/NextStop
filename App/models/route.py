@@ -1,6 +1,6 @@
 from App.database import db
-from App.models.area import Area
-from App.models.location import Location
+from App.models.Area import Area
+from App.models.Location import Location
 
 class Route(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -11,13 +11,16 @@ class Route(db.Model):
     
     start_area = db.relationship('Area', foreign_keys=[start_area_id])
     end_area = db.relationship('Area', foreign_keys=[end_area_id])
+    stops = db.relationship('Location', secondary='route_stop', order_by='RouteStop.stop_index')
+    buses = db.relationship('Bus', back_populates='route')
+    journeys = db.relationship('Journey', back_populates='route')
+    schedules = db.relationship('Schedule', back_populates='route')
     
     def __init__(self, name, cost, start_area, end_area):
         self.name = name
         self.cost = cost
         self.start_area = start_area
         self.end_area = end_area
-        self.stops = []
     
     def get_json(self):
         return {

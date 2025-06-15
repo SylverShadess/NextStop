@@ -1,9 +1,11 @@
 from App.database import db
-from .user import User, Driver
-from .bus import Bus
-from .route import Route
-from .area import Area
-from .location import Location, LocationType
-from .bus_event import BusEvent
-from .board_event import BoardEvent, EventType
-from .route_stop import RouteStop
+from .User import User, Driver
+from .Bus import Bus
+from .Route import Route
+from .Area import Area
+from .Location import Location, LocationType
+from .JourneyEvent import JourneyEvent
+from .BoardEvent import BoardEvent, BoardType
+from .Journey import Journey
+from .Schedule import Schedule
+from .RouteStop import RouteStop
