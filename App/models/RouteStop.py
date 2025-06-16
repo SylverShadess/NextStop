@@ -6,8 +6,9 @@ class RouteStop(db.Model):
     location_id = db.Column(db.Integer, db.ForeignKey('location.id'), nullable=False)
     stop_index = db.Column(db.Integer, nullable=False)
     
-    route = db.relationship('Route', backref=db.backref('route_stops', cascade='all, delete-orphan'))
     location = db.relationship('Location')
+    route = db.relationship('Route', back_populates='stops')
+    board_events = db.relationship('BoardEvent', back_populates='stop')
     
     def __init__(self, route, location, stop_index):
         self.route = route

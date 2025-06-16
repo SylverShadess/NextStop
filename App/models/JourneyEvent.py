@@ -10,11 +10,10 @@ class JourneyEvent(db.Model):
     
     journey = db.relationship('Journey', back_populates='events')
     
-    def __init__(self, journey, lat, lng, time=None):
-        self.journey_id = journey.id
+    def __init__(self, journey, lat, lng):
+        self.journey = journey
         self.lat = lat
         self.lng = lng
-        self.time = time if time else datetime.utcnow()
     
     def get_json(self):
         return {

@@ -1,13 +1,64 @@
+{# templates/next_stop.html #}
 {% extends "layout.html" %}
-{% block title %}Flask MVC App{% endblock %}
-{% block page %}Flask MVC App{% endblock %}
+
+{# ── Page metadata ────────────────────────────────────────── #}
+{% block title %}Next Stop{% endblock %}
+{% block page  %}Next Stop{% endblock %}
 
 {{ super() }}
 
+{# ── Main Page Content ────────────────────────────────────── #}
 {% block content %}
-    <h1>Flask MVC</h1>
-    {% if is_authenticated %}
-        <p> Welcome {{current_user.username}} </p>
-    {% endif %}
-    <p>This is a boileplate flask application which follows the MVC pattern for structuring the project.</p>
+<div class="container-fluid">
+  <div class="row flex-nowrap" style="height: 100vh;">
+    {# ─────────── Column 1: sidebar (1/4 width) ─────────── #}
+    <div class="col-12 col-md-3 col-xl-3 bg-white border-end p-3 overflow-auto">
+      <h5 class="mb-3 text-uppercase">Routes</h5>
+
+      <table class="table table-sm table-striped align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th scope="col">From</th>
+            <th scope="col">To</th>
+            <th scope="col">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for route in routes %}
+          <tr>
+            <td>{{ route.start_area.name }}</td>
+            <td>{{ route.end_area.name }}</td>
+            <td>
+              <button type="button"
+                      class="btn btn-primary btn-sm"
+                      onclick="previewRoute('{{ route.id }}')">
+                Preview
+              </button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {# ─────────── Column 2: map placeholder (3/4 width) ───── #}
+    <div class="col-12 col-md-9 col-xl-9 p-0">
+      <div id="map"
+           class="w-100 h-100 bg-secondary d-flex justify-content-center align-items-center">
+        <span class="text-white-50">Map preview will appear here</span>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{# ── Extra scripts ────────────────────────────────────────── #}
+{% block scripts %}
+  {{ super() }}
+  <script>
+    /* Redirect to a detailed preview page for the selected route. */
+    function previewRoute(routeId) {
+      window.location.href = `/routes/${routeId}`;
+    }
+  </script>
 {% endblock %}

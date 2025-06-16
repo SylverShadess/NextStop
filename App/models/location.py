@@ -1,10 +1,18 @@
 from App.database import db
 from enum import Enum
-from App.models import Schedule, Journey, JourneyEvent, Route, RouteStop, BoardEvent
+
+from .Schedule import Schedule
+from .Journey import Journey
+from .JourneyEvent import JourneyEvent
+from .Route import Route
+from .RouteStop import RouteStop
+from .BoardEvent import BoardEvent
+
 from sqlalchemy import func, desc
 import os
 from datetime import datetime, timedelta
 import openrouteservice
+# from App.config import config
 
 class LocationType(Enum):
     Stop = "Stop"
@@ -20,13 +28,12 @@ class LocationType(Enum):
 class Location(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
-    lat = db.Column(db.Integer, nullable=False)
-    lng = db.Column(db.Integer, nullable=False)
+    lat = db.Column(db.Float, nullable=False)
+    lng = db.Column(db.Float, nullable=False)
     type = db.Column(db.String(20), nullable=False)
     
     routes = db.relationship('Route', secondary='route_stop', viewonly=True)
     schedules = db.relationship('Schedule', back_populates='stop')
-    board_events = db.relationship('BoardEvent', back_populates='stop')
     
     def __init__(self, name, lat, lng, type):
         self.name = name
@@ -48,7 +55,8 @@ class Location(db.Model):
         
     def getBuses(self, route_id):
         # Get API key from environment variable
-        ors_api_key = os.environ.get('OPENROUTE_SERVICE_KEY')
+        # ors_api_key = config['OPENROUTE_SERVICE_KEY']
+        ors_api_key = '5b3ce3597851110001cf6248d01e28beb7a548ec846eb17333fc6c68'
         
         # Find this stop's position in the route
         current_stop_position = RouteStop.query.filter_by(
@@ -74,6 +82,10 @@ class Location(db.Model):
         if not active_journeys:
             return []
         
+        # print(f"Stop {self.name} position on route {route_id}: {current_stop_position}")
+        # print(f"Previous stop position: {previous_stop_position}")
+        # print(f"Active journeys: {active_journeys}")
+        
         # Find buses that have board events at the previous stop but not at the current stop
         buses_between_stops = []
         
@@ -83,14 +95,14 @@ class Location(db.Model):
             
             # Check if there are board events for this bus at the previous stop
             previous_stop_event = BoardEvent.query.filter_by(
-                bus_id=bus.id,
-                stop_id=previous_stop_position.location_id
+                journey_id=journey.id,
+                stop_id=previous_stop_position.id
             ).order_by(BoardEvent.time.desc()).first()
             
             # Check if there are board events for this bus at the current stop
             current_stop_event = BoardEvent.query.filter_by(
-                bus_id=bus.id,
-                stop_id=current_stop_position.location_id
+                journey_id=journey.id,
+                stop_id=current_stop_position.id
             ).order_by(BoardEvent.time.desc()).first()
             
             # If there are events at the previous stop but none at the current stop,

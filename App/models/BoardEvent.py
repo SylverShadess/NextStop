@@ -11,20 +11,22 @@ class BoardType(Enum):
             return BoardType.Enter
         elif type == "Exit":
             return BoardType.Exit
+        else:
+            return None
 
 class BoardEvent(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    bus_id = db.Column(db.Integer, db.ForeignKey('bus.id'), nullable=False)
+    journey_id = db.Column(db.Integer, db.ForeignKey('journey.id'), nullable=False)
     type = db.Column(db.String(10), nullable=False)
     qty = db.Column(db.Integer, nullable=False, default=1)
-    stop_id = db.Column(db.Integer, db.ForeignKey('location.id'), nullable=False)
+    stop_id = db.Column(db.Integer, db.ForeignKey('route_stop.id'), nullable=False)
     time = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     
-    bus = db.relationship('Bus', back_populates='board_events')
-    stop = db.relationship('Location', back_populates='board_events')
+    journey = db.relationship('Journey', back_populates='board_events')
+    stop = db.relationship('RouteStop', back_populates='board_events')
     
-    def __init__(self, bus, event_type, qty, stop, time=None):
-        self.bus = bus
+    def __init__(self, journey, event_type, qty, stop, time=None):
+        self.journey = journey
         self.type = event_type.value if isinstance(event_type, BoardType) else BoardType.set_type(event_type).value
         self.qty = qty
         self.stop = stop
@@ -33,8 +35,8 @@ class BoardEvent(db.Model):
     def get_json(self):
         return {
             'id': self.id,
-            'bus_id': self.bus_id,
-            'type': self.type.value,
+            'journey_id': self.journey_id,
+            'type': self.type,
             'qty': self.qty,
             'stop': self.stop.get_json() if self.stop else None,
             'time': self.time.isoformat()

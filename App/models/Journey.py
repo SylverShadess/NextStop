@@ -1,6 +1,10 @@
+from math import floor
 from App.database import db
 from datetime import datetime
-from App.models import Route, BoardEvent, JourneyEvent
+from .BoardEvent import BoardEvent
+from .JourneyEvent import JourneyEvent
+from .Route import Route
+
 
 class Journey(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -14,6 +18,7 @@ class Journey(db.Model):
     driver = db.relationship('Driver', backref='journeys')
     route = db.relationship('Route', backref='journeys')
     events = db.relationship('JourneyEvent', back_populates='journey', cascade='all, delete-orphan')
+    board_events = db.relationship('BoardEvent', back_populates='journey')
     
     def __init__(self, driver, route, bus, startTime=None):
         self.driver = driver
@@ -45,9 +50,9 @@ class Journey(db.Model):
         db.session.commit()
     
     def getStats(self):
-        # Get all board events for this journey's bus during the journey timeframe
+        # Get all board events for this journey during the journey timeframe
         board_events = BoardEvent.query.filter(
-            BoardEvent.bus_id == self.bus_id,
+            BoardEvent.journey_id == self.id,
             BoardEvent.time >= self.startTime,
             BoardEvent.time <= (self.endTime or datetime.utcnow())
         ).all()
@@ -73,30 +78,32 @@ class Journey(db.Model):
         else:
             minutes = (datetime.utcnow() - self.startTime).total_seconds() // 60  
             seconds = (datetime.utcnow() - self.startTime).total_seconds() % 60
-            duration = f"{minutes}m {seconds}s"
+            duration = f"{int(minutes)}m {floor(seconds)}s"
         
         # Get stop delays - comparing actual arrival times with scheduled times
         stop_delays = []
         if self.route and self.route.stops:
-            for stop in self.route.stops:
+            for route_stop in self.route.stops:
                 # Find board events at this stop
-                stop_events = [e for e in board_events if e.stop_id == stop.id]
+                stop_events = [e for e in board_events if e.stop_id == route_stop.id]
                 if stop_events:
                     # Get the first arrival at this stop
                     arrival_time = min(e.time for e in stop_events)
                     
                     # Get scheduled time if available
-                    schedule = stop.getSchedule(self.route_id)
-                    if schedule:
-                        # Calculate delay in minutes
-                        scheduled_time = schedule.time
-                        delay = (arrival_time - scheduled_time).total_seconds() / 60
-                        stop_delays.append({
-                            'stop_name': stop.name,
-                            'scheduled_time': scheduled_time.isoformat(),
-                            'actual_time': arrival_time.isoformat(),
-                            'delay_minutes': round(delay, 2)
-                        })
+                    location = route_stop.location if hasattr(route_stop, 'location') else None
+                    if location:
+                        schedule = location.getSchedule(self.route_id)
+                        if schedule:
+                            # Calculate delay in minutes
+                            scheduled_time = schedule.arrivalTime
+                            delay = (arrival_time - scheduled_time).total_seconds() / 60
+                            stop_delays.append({
+                                'stop_name': location.name,
+                                'scheduled_time': scheduled_time.isoformat(),
+                                'actual_time': arrival_time.isoformat(),
+                                'delay_minutes': round(delay, 2)
+                            })
         
         return {
             'journey_id': self.id,

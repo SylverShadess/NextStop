@@ -1,6 +1,7 @@
 from werkzeug.security import check_password_hash, generate_password_hash
 from App.database import db
-from App.models.Location import Location
+from .Location import Location
+
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -31,9 +32,8 @@ class User(db.Model):
 class Driver(User):
     full_Name = db.Column(db.String(100), nullable=True)
     licenseNo = db.Column(db.String(50), nullable=True)
-    
     buses = db.relationship('Bus', back_populates='driver')
-    journeys = db.relationship('Journey', back_populates='driver')
+
 
     def __init__(self, username, password, full_Name=None, licenseNo=None):
         super().__init__(username, password)

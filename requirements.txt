@@ -16,3 +16,4 @@ Werkzeug==2.3.7
 gevent==23.9.1
 mysqlclient==2.2.7
 Flask-Admin==1.6.1
+openrouteservice==2.3.3

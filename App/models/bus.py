@@ -9,8 +9,6 @@ class Bus(db.Model):
     
     driver = db.relationship('Driver', back_populates='buses')
     route = db.relationship('Route', back_populates='buses')
-    board_events = db.relationship('BoardEvent', back_populates='bus')
-    journeys = db.relationship('Journey', back_populates='bus')
     
     def __init__(self, plate_num, driver=None, route=None):
         self.plate_num = plate_num
@@ -29,6 +27,4 @@ class Bus(db.Model):
     
     def selectRoute(self, route):
         self.route = route
-        bus = Bus.query.get(self.id)
-        bus.route = route
         db.session.commit()

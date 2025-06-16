@@ -18,12 +18,12 @@
           <div class="nav-wrapper">
               <a href="#!" class="brand-logo center">{% block page %}{% endblock %}</a>
               <ul id="nav-mobile" class="left">
-                  <li><a href="/">Home</a></li>
+                  <!-- <li><a href="/">Home</a></li>
                   <li><a href="/users">Users Jinja</a></li>
                   {% if is_authenticated %}
                     <li><a href="/identify">Identify</a></li>
                   {% endif %}
-                  <li><a href="/static/users">Users JS</a></li>
+                  <li><a href="/static/users">Users JS</a></li> -->
               </ul>
               {% if is_authenticated %}
               <ul id="nav-mobile" class="right">
@@ -39,7 +39,7 @@
                       <input placeholder="password"value="bobpass" name="password" type="password" class="validate" required>
                       <label for="password">Password</label>
                   </div>
-                  <button type="submit" class="btn waves-effect waves-light">Login</button>
+                  <button type="submit" class="btn waves-effect waves-light">Driver Login</button>
               </form>
               {% endif %}
               
