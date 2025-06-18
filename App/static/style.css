@@ -1,3 +1,125 @@
 html {
     padding: 0;
 }
+
+body {
+    display: flex;
+    min-height: 100vh;
+    flex-direction: column;
+    background-color: #f5f5f5;
+}
+
+/* Make the container take up full height */
+.container {
+    flex: 1 0 auto;
+    padding: 20px;
+    max-width: 100%;
+}
+
+/* Mobile-first approach */
+@media only screen and (min-width: 601px) {
+    .container {
+        width: 85%;
+    }
+}
+
+@media only screen and (min-width: 993px) {
+    .container {
+        width: 70%;
+    }
+}
+
+/* Card styling */
+.card {
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+.card .card-content {
+    padding: 20px;
+}
+
+.card .card-title {
+    font-weight: 500;
+    margin-bottom: 20px;
+}
+
+/* Button styling */
+.btn, .btn-small, .btn-large {
+    border-radius: 30px;
+    text-transform: none;
+    font-weight: 500;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+/* Collection styling */
+.collection {
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.collection .collection-item {
+    border-bottom: 1px solid #e0e0e0;
+    padding: 15px;
+}
+
+.collection .collection-item:last-child {
+    border-bottom: none;
+}
+
+/* Progress bar styling */
+.progress {
+    height: 10px;
+    border-radius: 5px;
+    background-color: #e0e0e0;
+}
+
+.progress .determinate {
+    background-color: #9c27b0;
+}
+
+/* Chip styling */
+.chip {
+    height: 32px;
+    border-radius: 16px;
+    margin-right: 8px;
+}
+
+/* Map container */
+#map {
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+/* Journey list styling */
+.journey-list .collection-item {
+    position: relative;
+    min-height: 84px;
+}
+
+.journey-list .title {
+    font-weight: 500;
+    font-size: 16px;
+}
+
+/* Form styling */
+.input-field input:focus {
+    border-bottom: 1px solid #9c27b0 !important;
+    box-shadow: 0 1px 0 0 #9c27b0 !important;
+}
+
+.input-field input:focus + label {
+    color: #9c27b0 !important;
+}
+
+/* Select styling */
+.select-wrapper input.select-dropdown:focus {
+    border-bottom: 1px solid #9c27b0;
+}
+
+/* Navbar styling */
+nav .brand-logo {
+    font-size: 1.5rem;
+}

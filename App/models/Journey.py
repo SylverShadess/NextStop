@@ -13,18 +13,22 @@ class Journey(db.Model):
     route_id = db.Column(db.Integer, db.ForeignKey('route.id'), nullable=False)
     startTime = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     endTime = db.Column(db.DateTime, nullable=True)
+    current_stop_index = db.Column(db.Integer, nullable=False, default=0)
+    status = db.Column(db.String(20), nullable=False, default="In Progress")
     
     bus = db.relationship('Bus', backref='journeys')
-    driver = db.relationship('Driver', backref='journeys')
+    driver = db.relationship('Driver', back_populates='journeys')
     route = db.relationship('Route', backref='journeys')
     events = db.relationship('JourneyEvent', back_populates='journey', cascade='all, delete-orphan')
     board_events = db.relationship('BoardEvent', back_populates='journey')
     
-    def __init__(self, driver, route, bus, startTime=None):
+    def __init__(self, driver, route, bus, startTime=None, endTime=None, status="In Progress"):
         self.driver = driver
         self.route = route
         self.bus = bus
         self.startTime = startTime if startTime else datetime.utcnow()
+        self.endTime = endTime if endTime else None
+        self.status = status
     
     def getRoutes(self):
         return Route.query.all()
@@ -40,14 +44,83 @@ class Journey(db.Model):
         return event
     
     def boardEvent(self, type, qty, stop):
-        event = BoardEvent(self.bus, type, qty, stop)
+        event = BoardEvent(self, type, qty, stop)
         db.session.add(event)
         db.session.commit()
         return event
     
     def completeJourney(self):
         self.endTime = datetime.utcnow()
+        self.status = "Completed"
         db.session.commit()
+        
+    def cancelJourney(self):
+        self.endTime = datetime.utcnow()
+        self.status = "Cancelled"
+        db.session.commit()
+        
+    def getCurrentStop(self):
+        """Get the current stop of the journey"""
+        from .RouteStop import RouteStop
+        return RouteStop.query.filter_by(
+            route_id=self.route_id,
+            stop_index=self.current_stop_index
+        ).first()
+        
+    def getNextStop(self):
+        """Get the next stop of the journey"""
+        from .RouteStop import RouteStop
+        return RouteStop.query.filter_by(
+            route_id=self.route_id,
+            stop_index=self.current_stop_index + 1
+        ).first()
+        
+    def getPreviousStop(self):
+        """Get the previous stop of the journey"""
+        if self.current_stop_index <= 0:
+            return None
+            
+        from .RouteStop import RouteStop
+        return RouteStop.query.filter_by(
+            route_id=self.route_id,
+            stop_index=self.current_stop_index - 1
+        ).first()
+        
+    def moveToNextStop(self):
+        """Move to the next stop and create a journey event"""
+        next_stop = self.getNextStop()
+        if not next_stop:
+            return False
+            
+        # Update current stop index
+        self.current_stop_index += 1
+        
+        # Create journey event at the new stop's location
+        lat = next_stop.location.lat
+        lng = next_stop.location.lng
+        self.trackEvent(lat, lng)
+        
+        db.session.commit()
+        return True
+        
+    def moveToPreviousStop(self):
+        """Move to the previous stop"""
+        if self.current_stop_index <= 0:
+            return False
+            
+        # Update current stop index
+        self.current_stop_index -= 1
+        db.session.commit()
+        return True
+        
+    def calculateProgress(self):
+        """Calculate the journey progress as a percentage"""
+        from .RouteStop import RouteStop
+        total_stops = RouteStop.query.filter_by(route_id=self.route_id).count()
+        if total_stops == 0:
+            return 0
+            
+        return int((self.current_stop_index / (total_stops - 1)) * 100) if total_stops > 1 else 100
     
     def getStats(self):
         # Get all board events for this journey during the journey timeframe
@@ -74,11 +147,11 @@ class Journey(db.Model):
         if self.endTime:
             minutes = (self.endTime - self.startTime).total_seconds() // 60  
             seconds = (self.endTime - self.startTime).total_seconds() % 60
-            duration = f"{minutes}m {seconds}s"
+            duration = f"{int(minutes)}m {int(floor(seconds))}s"
         else:
             minutes = (datetime.utcnow() - self.startTime).total_seconds() // 60  
             seconds = (datetime.utcnow() - self.startTime).total_seconds() % 60
-            duration = f"{int(minutes)}m {floor(seconds)}s"
+            duration = f"{int(minutes)}m {int(floor(seconds))}s"
         
         # Get stop delays - comparing actual arrival times with scheduled times
         stop_delays = []
@@ -123,5 +196,15 @@ class Journey(db.Model):
             'driver_id': self.driver_id,
             'route_id': self.route_id,
             'startTime': self.startTime.isoformat(),
-            'endTime': self.endTime.isoformat() if self.endTime else None
-        } 
+            'endTime': self.endTime.isoformat() if self.endTime else None,
+            'status': self.status
+        }
+        
+    @classmethod
+    def get_journeys_for_driver(cls, driver_id):
+        """Get all journeys for a specific driver"""
+        try:
+            return cls.query.filter_by(driver_id=driver_id).order_by(cls.startTime.desc()).all()
+        except Exception as e:
+            print(f"Error getting journeys for driver {driver_id}: {str(e)}")
+            return [] 

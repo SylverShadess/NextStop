@@ -1,0 +1,158 @@
+{% extends "layout.html" %}
+{% block title %}Journey in Progress{% endblock %}
+{% block page %}Journey in Progress{% endblock %}
+
+{{ super() }}
+
+{% block content %}
+<div class="container">
+  <div class="row">
+    <div class="col s12">
+      <div class="card">
+        <div class="card-content">
+          <span class="card-title center-align">Journey Details</span>
+          
+          <!-- Route Info -->
+          <div class="route-info center-align">
+            <div class="chip purple white-text">
+              <i class="material-icons left">place</i>
+              From: {{ journey.route.start_area.name }}
+            </div>
+            <div class="chip purple white-text">
+              <i class="material-icons left">flag</i>
+              To: {{ journey.route.end_area.name }}
+            </div>
+          </div>
+          
+          <!-- Progress Bar -->
+          <div class="progress-container" style="margin: 20px 0;">
+            <div class="progress">
+              <div class="determinate" style="width: {{ progress }}%"></div>
+            </div>
+            <div class="center-align">
+              <span>Current Stop: {{ current_location }}</span>
+            </div>
+          </div>
+          
+          <!-- Navigation Controls -->
+          <div class="row center-align" style="margin: 20px 0;">
+            <div class="col s6">
+              <form action="{{ url_for('journey_views.move_to_previous_stop_route', journey_id=journey.id) }}" method="POST">
+                <button type="submit" class="btn waves-effect waves-light purple lighten-2" {% if not prev_stop %}disabled{% endif %}>
+                  <i class="material-icons left">arrow_back</i>Previous Stop
+                </button>
+              </form>
+            </div>
+            <div class="col s6">
+              <form action="{{ url_for('journey_views.move_to_next_stop_route', journey_id=journey.id) }}" method="POST">
+                <button type="submit" class="btn waves-effect waves-light purple">
+                  <i class="material-icons right">arrow_forward</i>Next Stop
+                </button>
+              </form>
+            </div>
+          </div>
+          
+          <!-- ETA Info -->
+          <div class="eta-info center-align" style="margin: 20px 0;">
+            <div class="row">
+              <div class="col s6">
+                <div class="card-panel purple lighten-4">
+                  <i class="material-icons medium">schedule</i>
+                  <h5>ETA: {{ eta_time }}</h5>
+                </div>
+              </div>
+              <div class="col s6">
+                <div class="card-panel purple lighten-4">
+                  <i class="material-icons medium">straighten</i>
+                  <h5>{{ eta_distance }} km</h5>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Seats Available -->
+          <div class="seats-info center-align" style="margin: 20px 0;">
+            <div class="card-panel purple lighten-5">
+              <h5>Seats Available: {{ seats_available }}</h5>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Boarding Controls -->
+      <div class="card">
+        <div class="card-content">
+          <span class="card-title center-align">Passenger Boarding at {{ current_location }}</span>
+          
+          {% if current_stop %}
+          <div class="row">
+            <div class="col s6 center-align">
+              <!-- Board Button -->
+              <form id="board-form" action="{{ url_for('journey_views.create_board_event') }}" method="POST">
+                <input type="hidden" name="journey_id" value="{{ journey.id }}">
+                <input type="hidden" name="type" value="Enter">
+                <div class="input-field inline">
+                  <input id="board-qty" name="qty" type="number" class="validate" value="1" min="1" max="{{ seats_available }}">
+                  <label for="board-qty">Qty</label>
+                </div>
+                <button type="submit" class="btn waves-effect waves-light green" {% if seats_available <= 0 %}disabled{% endif %}>
+                  <i class="material-icons left">add</i>Board
+                </button>
+              </form>
+            </div>
+            
+            <div class="col s6 center-align">
+              <!-- Unboard Button -->
+              <form id="unboard-form" action="{{ url_for('journey_views.create_board_event') }}" method="POST">
+                <input type="hidden" name="journey_id" value="{{ journey.id }}">
+                <input type="hidden" name="type" value="Exit">
+                <div class="input-field inline">
+                  <input id="unboard-qty" name="qty" type="number" class="validate" value="1" min="1" max="{{ journey.bus.passenger_count }}">
+                  <label for="unboard-qty">Qty</label>
+                </div>
+                <button type="submit" class="btn waves-effect waves-light orange" {% if journey.bus.passenger_count <= 0 %}disabled{% endif %}>
+                  <i class="material-icons left">remove</i>Unboard
+                </button>
+              </form>
+            </div>
+          </div>
+          {% else %}
+          <div class="center-align" style="margin: 20px 0;">
+            <p>Please move to a stop to manage passengers.</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      
+      <!-- Journey Control Buttons -->
+      <div class="row" style="margin-top: 20px;">
+        <div class="col s6 center-align">
+          <form action="{{ url_for('journey_views.cancel_journey_route') }}" method="POST">
+            <input type="hidden" name="journey_id" value="{{ journey.id }}">
+            <button type="submit" class="btn waves-effect waves-light red">
+              <i class="material-icons left">cancel</i>Cancel Journey
+            </button>
+          </form>
+        </div>
+        <div class="col s6 center-align">
+          <form action="{{ url_for('journey_views.complete_journey_route') }}" method="POST">
+            <input type="hidden" name="journey_id" value="{{ journey.id }}">
+            <button type="submit" class="btn waves-effect waves-light blue">
+              <i class="material-icons left">check_circle</i>End Journey
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+  {{ super() }}
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Initialize any Materialize components if needed
+    });
+  </script>
+{% endblock %} 

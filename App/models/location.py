@@ -12,7 +12,7 @@ from sqlalchemy import func, desc
 import os
 from datetime import datetime, timedelta
 import openrouteservice
-# from App.config import config
+from App.config import config
 
 class LocationType(Enum):
     Stop = "Stop"
@@ -55,8 +55,12 @@ class Location(db.Model):
         
     def getBuses(self, route_id):
         # Get API key from environment variable
-        # ors_api_key = config['OPENROUTE_SERVICE_KEY']
-        ors_api_key = '5b3ce3597851110001cf6248d01e28beb7a548ec846eb17333fc6c68'
+        ors_api_key = config.get('OPENROUTE_SERVICE_KEY', '')
+        
+        # Check if API key is valid
+        if not ors_api_key:
+            print("Warning: OpenRouteService API key not configured")
+            return []
         
         # Find this stop's position in the route
         current_stop_position = RouteStop.query.filter_by(
@@ -81,10 +85,6 @@ class Location(db.Model):
         
         if not active_journeys:
             return []
-        
-        # print(f"Stop {self.name} position on route {route_id}: {current_stop_position}")
-        # print(f"Previous stop position: {previous_stop_position}")
-        # print(f"Active journeys: {active_journeys}")
         
         # Find buses that have board events at the previous stop but not at the current stop
         buses_between_stops = []
@@ -136,51 +136,105 @@ class Location(db.Model):
         if not bus_info:
             return []
         
-        # Initialize the OpenRouteService client
-        client = openrouteservice.Client(key=ors_api_key)
-        
-        # Create coordinates list with current location as first entry
-        coordinates = [[self.lng, self.lat]]
-        
-        # Add bus coordinates
-        for info in bus_info:
-            coordinates.append([info['lng'], info['lat']])
-        
-        # Make API request with both distance and duration metrics using the Python client
         try:
-            matrix = client.distance_matrix(
-                locations=coordinates,
-                profile='driving-car',
-                metrics=['distance', 'duration'],
-                units='m'  # meters
-            )
+            # Initialize the OpenRouteService client
+            client = openrouteservice.Client(key=ors_api_key)
             
-            # Process results
-            distances = matrix['distances'][0]  # First row contains distances from our location
-            durations = matrix['durations'][0]  # First row contains durations from our location
+            # Create coordinates list with current location as first entry
+            coordinates = [[self.lng, self.lat]]
             
-            # Skip the first entries (which are 0, distance/duration to self)
-            for i in range(len(distances) - 1):
-                distance = distances[i + 1]
-                duration_seconds = durations[i + 1]
+            # Add bus coordinates
+            for info in bus_info:
+                coordinates.append([info['lng'], info['lat']])
+            
+            # Make API request with both distance and duration metrics using the Python client
+            try:
+                matrix = client.distance_matrix(
+                    locations=coordinates,
+                    profile='driving-car',
+                    metrics=['distance', 'duration'],
+                    units='m'  # meters
+                )
                 
-                # Calculate estimated arrival time
-                now = datetime.utcnow()
-                arrival_time = now + timedelta(seconds=duration_seconds)
+                # Process results
+                distances = matrix['distances'][0]  # First row contains distances from our location
+                durations = matrix['durations'][0]  # First row contains durations from our location
                 
-                # Format arrival time for display
-                arrival_time_str = arrival_time.strftime('%H:%M:%S')
+                # Skip the first entries (which are 0, distance/duration to self)
+                for i in range(len(distances) - 1):
+                    distance = distances[i + 1]
+                    duration_seconds = durations[i + 1]
+                    
+                    # Calculate estimated arrival time
+                    now = datetime.utcnow()
+                    arrival_time = now + timedelta(seconds=duration_seconds)
+                    
+                    # Format arrival time for display
+                    arrival_time_str = arrival_time.strftime('%H:%M:%S')
+                    
+                    # Update bus info with distance and duration
+                    bus_info[i]['distance'] = distance
+                    bus_info[i]['duration_seconds'] = duration_seconds
+                    bus_info[i]['estimated_arrival'] = arrival_time_str
                 
-                # Update bus info with distance and duration
-                bus_info[i]['distance'] = distance
-                bus_info[i]['duration_seconds'] = duration_seconds
-                bus_info[i]['estimated_arrival'] = arrival_time_str
-            
-            # Sort by distance and take the closest 3
-            bus_info.sort(key=lambda x: x['distance'])
-            return bus_info[:3]
-            
+                # Sort by distance and take the closest 3
+                bus_info.sort(key=lambda x: x['distance'])
+                return bus_info[:3]
+                
+            except openrouteservice.exceptions.ApiError as e:
+                print(f"OpenRouteService API error: {str(e)}")
+                # Fallback: Estimate using straight-line distance
+                return self._fallback_distance_calculation(bus_info)
+                
         except Exception as e:
             # Handle any errors from the OpenRouteService client
             print(f"Error calculating distances: {str(e)}")
-            return []
+            # Fallback: Estimate using straight-line distance
+            return self._fallback_distance_calculation(bus_info)
+            
+    def _fallback_distance_calculation(self, bus_info):
+        """Fallback method to calculate straight-line distance and estimated arrival"""
+        from math import radians, sin, cos, sqrt, atan2
+        
+        def haversine(lat1, lon1, lat2, lon2):
+            # Calculate the great circle distance between two points
+            # on the earth (specified in decimal degrees)
+            R = 6371000  # Earth radius in meters
+            
+            # Convert decimal degrees to radians
+            lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
+            
+            # Haversine formula
+            dlat = lat2 - lat1
+            dlon = lon2 - lon1
+            a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+            c = 2 * atan2(sqrt(a), sqrt(1-a))
+            distance = R * c
+            
+            return distance
+        
+        # Average bus speed in meters per second (30 km/h)
+        avg_speed = 8.33  # m/s
+        
+        for info in bus_info:
+            # Calculate straight-line distance
+            distance = haversine(self.lat, self.lng, info['lat'], info['lng'])
+            
+            # Estimate duration (add 30% to account for roads not being straight)
+            duration_seconds = (distance * 1.3) / avg_speed
+            
+            # Calculate estimated arrival time
+            now = datetime.utcnow()
+            arrival_time = now + timedelta(seconds=duration_seconds)
+            
+            # Format arrival time for display
+            arrival_time_str = arrival_time.strftime('%H:%M:%S')
+            
+            # Update bus info
+            info['distance'] = distance
+            info['duration_seconds'] = duration_seconds
+            info['estimated_arrival'] = arrival_time_str
+        
+        # Sort by distance and take the closest 3
+        bus_info.sort(key=lambda x: x['distance'])
+        return bus_info[:3]

@@ -1,0 +1,81 @@
+{% extends "layout.html" %}
+{% block title %}Journey Statistics{% endblock %}
+{% block page %}Journey Statistics{% endblock %}
+
+{{ super() }}
+
+{% block content %}
+<div class="container">
+  <div class="row">
+    <div class="col s12">
+      <div class="card">
+        <div class="card-content">
+          <span class="card-title center-align">Journey Summary</span>
+          
+          <!-- Journey Basic Info -->
+          <div class="journey-info">
+            <p><strong>Route:</strong> {{ stats.route_name }}</p>
+            <p><strong>Started:</strong> {{ stats.start_time | replace('T', ' ') }}</p>
+            <p><strong>Ended:</strong> {{ stats.end_time | replace('T', ' ') }}</p>
+            <p><strong>Duration:</strong> {{ stats.duration }}</p>
+          </div>
+          
+          <!-- Stats Cards -->
+          <div class="row" style="margin-top: 20px;">
+            <div class="col s6">
+              <div class="card-panel purple lighten-4 center-align">
+                <i class="material-icons medium">people</i>
+                <h5>{{ stats.total_passengers }}</h5>
+                <p>Total Passengers</p>
+              </div>
+            </div>
+            <div class="col s6">
+              <div class="card-panel purple lighten-4 center-align">
+                <i class="material-icons medium">attach_money</i>
+                <h5>${{ stats.revenue }}</h5>
+                <p>Revenue Generated</p>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Stop Delays -->
+          {% if stats.stop_delays %}
+            <div class="stop-delays" style="margin-top: 20px;">
+              <h5>Stop Delays</h5>
+              <table class="striped">
+                <thead>
+                  <tr>
+                    <th>Stop</th>
+                    <th>Scheduled Time</th>
+                    <th>Actual Time</th>
+                    <th>Delay</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for delay in stats.stop_delays %}
+                    <tr>
+                      <td>{{ delay.stop_name }}</td>
+                      <td>{{ delay.scheduled_time | replace('T', ' ') }}</td>
+                      <td>{{ delay.actual_time | replace('T', ' ') }}</td>
+                      <td class="{% if delay.delay_minutes > 0 %}red-text{% else %}green-text{% endif %}">
+                        {{ delay.delay_minutes }} min
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+      
+      <!-- Return Button -->
+      <div class="center-align" style="margin-top: 20px;">
+        <a href="{{ url_for('journey_views.driver_journeys_page') }}" class="btn waves-effect waves-light purple">
+          <i class="material-icons left">arrow_back</i>Back to Journeys
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} 

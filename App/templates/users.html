@@ -5,40 +5,51 @@
 {{ super() }}
 
 {% block content %}
+<div class="container">
     <div class="row">
-        <p>
-            This is table is renderd on the Server. Flask gets the data from the database and uses jinja templates to dyanmically render this page when a request is sent to <a href="/users">/users</a>.
-        </p>
-    </div>
-
+    <div class="col s12">
+      <div class="card">
+        <div class="card-content">
+          <span class="card-title center-align">Add New User</span>
+          
+          <form method="POST" action="/users">
     <div class="row">
-      <form class="col s12" method="POST" action="/users">
-        
-        <div class="row">
-          <div class="input-field col s6">
-            <input placeholder="Username" name="username" type="text" class="validate">
+              <div class="input-field col s12 m6">
+                <i class="material-icons prefix">account_circle</i>
+                <input id="username" name="username" type="text" class="validate" required>
             <label for="username">Username</label>
           </div>
-          <div class="input-field col s6">
-            <input placeholder="password" name="password" type="password" class="validate">
+              <div class="input-field col s12 m6">
+                <i class="material-icons prefix">lock</i>
+                <input id="password" name="password" type="password" class="validate" required>
             <label for="password">Password</label>
           </div>
         </div>
       
         <div class="row">
-          <div class="input-field col s12">
-            <button class="btn waves-effect waves-light right purple" type="submit" name="action">Submit</button>
+              <div class="col s12 center-align">
+                <button class="btn waves-effect waves-light purple" type="submit">
+                  <i class="material-icons left">add</i>Add User
+                </button>
           </div>
         </div> 
-
       </form>
+        </div>
+      </div>
+    </div>
     </div>
 
     <div class="row">
-      <table>
+    <div class="col s12">
+      <div class="card">
+        <div class="card-content">
+          <span class="card-title center-align">User List</span>
+          
+          <table class="striped highlight responsive-table">
         <thead>
           <tr>
-            <th>Id</th><th>Username</th>
+                <th>ID</th>
+                <th>Username</th>
           </tr>
         </thead>
         <tbody>
@@ -48,8 +59,11 @@
                 <td>{{user.username}}</td>
             </tr>
           {% endfor %}
-        <tbody>
+            </tbody>
       </table>
+        </div>
+      </div>
     </div>
-
+  </div>
+</div>
 {% endblock %}

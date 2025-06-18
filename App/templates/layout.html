@@ -1,7 +1,6 @@
 <!doctype html>
 <html>
   <head>
-  
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
      <!--Import Google Icon Font-->
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
@@ -9,62 +8,124 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
     <!--Let browser know website is optimized for mobile-->
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>{% block title %}{% endblock %}</title>
-
+    <title>NextStop - {% block title %}{% endblock %}</title>
   </head>
   <body>
-    
+    <!-- Navigation -->
       <nav class="purple">
           <div class="nav-wrapper">
-              <a href="#!" class="brand-logo center">{% block page %}{% endblock %}</a>
-              <ul id="nav-mobile" class="left">
-                  <!-- <li><a href="/">Home</a></li>
-                  <li><a href="/users">Users Jinja</a></li>
+        <a href="/" class="brand-logo center">{% block page %}{% endblock %}</a>
+        
                   {% if is_authenticated %}
-                    <li><a href="/identify">Identify</a></li>
-                  {% endif %}
-                  <li><a href="/static/users">Users JS</a></li> -->
+        <!-- Dropdown Structure -->
+        <ul id="dropdown1" class="dropdown-content">
+          <li><a href="{{ url_for('journey_views.driver_journeys_page') }}">My Journeys</a></li>
+          <li class="divider"></li>
+          <li><a href="/logout">Logout</a></li>
               </ul>
-              {% if is_authenticated %}
-              <ul id="nav-mobile" class="right">
+        
+        <!-- Mobile Nav Menu -->
+        <a href="#" data-target="mobile-nav" class="sidenav-trigger"><i class="material-icons">menu</i></a>
+        
+        <!-- Desktop Nav Menu -->
+        <ul id="nav-mobile" class="right hide-on-med-and-down">
+          <li><a href="{{ url_for('journey_views.driver_journeys_page') }}">My Journeys</a></li>
                 <li><a href="/logout">Logout</a></li>
               </ul>
               {% else %}
-              <form class="right navbar-form" method="POST" action="/login" style="display: flex; flex-wrap: nowrap; align-items: center; margin-right: 10px;">
-                  <div class="input-field" style="margin-right: 10px;">
-                      <input placeholder="username" value="bob" name="username" type="text" class="validate" required>
-                      <label for="username">username</label>
+        <!-- Login Form -->
+        <a href="#login-modal" class="modal-trigger right hide-on-small-only" style="margin-right: 15px;">
+          <i class="material-icons left">account_circle</i>Driver Login
+        </a>
+        <a href="#login-modal" class="modal-trigger right hide-on-med-and-up" style="margin-right: 15px;">
+          <i class="material-icons">account_circle</i>
+        </a>
+        {% endif %}
                   </div>
-                  <div class="input-field" style="margin-right: 10px;">
-                      <input placeholder="password"value="bobpass" name="password" type="password" class="validate" required>
-                      <label for="password">Password</label>
+    </nav>
+    
+    <!-- Mobile Sidenav -->
+    {% if is_authenticated %}
+    <ul class="sidenav" id="mobile-nav">
+      <li>
+        <div class="user-view">
+          <div class="background purple lighten-1"></div>
+          <a href="#"><i class="material-icons white-text" style="font-size: 48px;">account_circle</i></a>
+          <a href="#"><span class="white-text name">{{ current_user.username }}</span></a>
                   </div>
-                  <button type="submit" class="btn waves-effect waves-light">Driver Login</button>
-              </form>
+      </li>
+      <li><a href="{{ url_for('journey_views.driver_journeys_page') }}"><i class="material-icons">directions_bus</i>My Journeys</a></li>
+      <li><div class="divider"></div></li>
+      <li><a href="/logout"><i class="material-icons">exit_to_app</i>Logout</a></li>
+    </ul>
               {% endif %}
               
+    <!-- Login Modal -->
+    {% if not is_authenticated %}
+    <div id="login-modal" class="modal">
+      <div class="modal-content">
+        <h4 class="center-align">Driver Login</h4>
+        <form method="POST" action="/login">
+          <div class="row">
+            <div class="input-field col s12">
+              <i class="material-icons prefix">account_circle</i>
+              <input id="username" name="username" type="text" class="validate" value="bob" required>
+              <label for="username">Username</label>
+            </div>
           </div>
-      </nav>
-      <style>
-          .navbar-form label {
-              color: white !important;
-          }
-      </style>
+          <div class="row">
+            <div class="input-field col s12">
+              <i class="material-icons prefix">lock</i>
+              <input id="password" name="password" type="password" class="validate" value="bobpass" required>
+              <label for="password">Password</label>
+            </div>
+          </div>
+          <div class="row center-align">
+            <button type="submit" class="btn waves-effect waves-light purple">
+              <i class="material-icons left">login</i>Login
+            </button>
+          </div>
+        </form>
+        <div class="row center-align">
+          <p>Don't have an account? <a href="{{ url_for('auth_views.driver_signup') }}" class="purple-text">Sign up</a></p>
+        </div>
+      </div>
+    </div>
+    {% endif %}
 
+    <!-- Main Content -->
     <div class="container" id="content">{% block content %}{% endblock %}</div>
 
+    <!-- Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
     <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        // Initialize all Materialize components
        M.AutoInit();
 
+        // Initialize sidenav
+        var elems = document.querySelectorAll('.sidenav');
+        var instances = M.Sidenav.init(elems);
+        
+        // Initialize dropdown
+        var dropdowns = document.querySelectorAll('.dropdown-trigger');
+        var instances = M.Dropdown.init(dropdowns);
+        
+        // Initialize modals
+        var modals = document.querySelectorAll('.modal');
+        var instances = M.Modal.init(modals);
+        
+        // Display flash messages
         {% with messages = get_flashed_messages() %}
           {% if messages %}
               {% for message in messages %}
-              M.toast({html: '{{message}}'})
+            M.toast({html: '{{message}}', classes: 'rounded'});
               {% endfor %}
           {% endif %}
         {% endwith %}
-       
+      });
     </script>
+    
+    {% block scripts %}{% endblock %}
   </body>
 </html>

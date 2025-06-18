@@ -1,5 +1,7 @@
 import os
 
+config = {}
+
 def load_config(app, overrides):
     if os.path.exists(os.path.join('./App', 'custom_config.py')):
         app.config.from_object('App.custom_config')
@@ -17,3 +19,5 @@ def load_config(app, overrides):
     app.config['FLASK_ADMIN_SWATCH'] = 'darkly'
     for key in overrides:
         app.config[key] = overrides[key]
+    
+    config.update(app.config)

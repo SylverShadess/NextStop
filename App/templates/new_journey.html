@@ -1,0 +1,75 @@
+{% extends "layout.html" %}
+{% block title %}Start New Journey{% endblock %}
+{% block page %}Start New Journey{% endblock %}
+
+{{ super() }}
+
+{% block content %}
+<div class="container">
+  <div class="row">
+    <div class="col s12">
+      <h5 class="center-align">Select a Route</h5>
+      
+      <!-- Route Selection -->
+      <div class="routes-container">
+        {% if routes %}
+          <ul class="collection">
+            {% for route in routes %}
+              <li class="collection-item">
+                <div class="route-info">
+                  <h6>{{ route.name }}</h6>
+                  <p>
+                    <i class="material-icons tiny">place</i> From: {{ route.start_area.name }}<br>
+                    <i class="material-icons tiny">flag</i> To: {{ route.end_area.name }}<br>
+                    <i class="material-icons tiny">attach_money</i> Fare: ${{ route.cost }}
+                  </p>
+                  <div class="right-align">
+                    <form action="{{ url_for('journey_views.create_journey') }}" method="POST">
+                      <input type="hidden" name="route_id" value="{{ route.id }}">
+                      <button type="submit" class="btn waves-effect waves-light purple">
+                        <i class="material-icons left">directions_bus</i>Select Route
+                      </button>
+                    </form>
+                  </div>
+                </div>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <div class="card-panel center-align">
+            <span>No routes available at the moment.</span>
+          </div>
+        {% endif %}
+      </div>
+      
+      <!-- Back Button -->
+      <div class="center-align" style="margin-top: 20px;">
+        <a href="{{ url_for('journey_views.driver_journeys_page') }}" class="btn waves-effect waves-light grey">
+          <i class="material-icons left">arrow_back</i>Back to Journeys
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Map Preview (Hidden initially) -->
+<div id="route-map-modal" class="modal">
+  <div class="modal-content">
+    <h4>Route Preview</h4>
+    <div id="route-map" style="height: 400px;"></div>
+  </div>
+  <div class="modal-footer">
+    <a href="#!" class="modal-close waves-effect waves-green btn-flat">Close</a>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+  {{ super() }}
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      var elems = document.querySelectorAll('.modal');
+      var instances = M.Modal.init(elems);
+    });
+  </script>
+{% endblock %} 

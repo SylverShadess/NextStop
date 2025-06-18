@@ -1,0 +1,57 @@
+{% extends "layout.html" %}
+{% block title %}Your Journeys{% endblock %}
+{% block page %}Your Journeys{% endblock %}
+
+{{ super() }}
+
+{% block content %}
+<div class="container">
+  <div class="row">
+    <div class="col s12">
+      <h5 class="center-align">Your Journeys</h5>
+      
+      <!-- Create New Journey Button -->
+      <div class="center-align" style="margin: 20px 0;">
+        <a href="{{ url_for('journey_views.new_journey_page') }}" class="btn waves-effect waves-light purple">
+          <i class="material-icons left">add</i>Start New Journey
+        </a>
+      </div>
+      
+      <!-- Journey List -->
+      <div class="journey-list">
+        {% if journeys %}
+          <ul class="collection">
+            {% for journey in journeys %}
+              <li class="collection-item avatar">
+                <i class="material-icons circle purple">directions_bus</i>
+                <span class="title">Route: {{ journey.route.name }}</span>
+                <p>
+                  From: {{ journey.route.start_area.name }}<br>
+                  To: {{ journey.route.end_area.name }}<br>
+                  Started: {{ journey.startTime.strftime('%d-%m-%Y %H:%M') }}<br>
+                  Status: {% if journey.endTime %}Completed{% else %}In Progress{% endif %}
+                </p>
+                <div class="secondary-content">
+                  {% if journey.endTime %}
+                    <a href="{{ url_for('journey_views.journey_stats_page', journey_id=journey.id) }}" class="btn-small waves-effect waves-light purple">
+                      <i class="material-icons">assessment</i>
+                    </a>
+                  {% else %}
+                    <a href="{{ url_for('journey_views.journey_progress_page', journey_id=journey.id) }}" class="btn-small waves-effect waves-light green">
+                      <i class="material-icons">play_arrow</i>
+                    </a>
+                  {% endif %}
+                </div>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <div class="card-panel center-align">
+            <span>You don't have any journeys yet. Start a new journey to begin.</span>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} 

@@ -26,11 +26,25 @@ class BoardEvent(db.Model):
     stop = db.relationship('RouteStop', back_populates='board_events')
     
     def __init__(self, journey, event_type, qty, stop, time=None):
-        self.journey = journey
-        self.type = event_type.value if isinstance(event_type, BoardType) else BoardType.set_type(event_type).value
-        self.qty = qty
-        self.stop = stop
-        self.time = time if time else datetime.utcnow()
+        try:
+            self.journey = journey
+            self.type = event_type.value if isinstance(event_type, BoardType) else BoardType.set_type(event_type).value
+            self.qty = qty
+            self.stop = stop
+            self.time = time if time else datetime.utcnow()
+            
+            # Update the bus passenger count
+            if journey and journey.bus:
+                bus = journey.bus
+                if self.type == "Enter":
+                    if not bus.board_passengers(qty):
+                        raise ValueError(f"Cannot board {qty} passengers. Bus capacity exceeded.")
+                elif self.type == "Exit":
+                    if not bus.alight_passengers(qty):
+                        raise ValueError(f"Cannot alight {qty} passengers. Not enough passengers on bus.")
+        except Exception as e:
+            db.session.rollback()
+            raise ValueError(f"Error creating board event: {str(e)}")
     
     def get_json(self):
         return {
