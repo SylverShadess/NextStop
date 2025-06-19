@@ -238,9 +238,6 @@
             data.stops.forEach(stop => {
               const marker = L.marker([stop.location.lat, stop.location.lng])
                 .bindPopup(createStopPopup(stop))
-                // .on('click', function() {
-                //   loadBusInfo(stop.id, routeId);
-                // })
                 .addTo(markersLayer);
               
               // Store marker reference

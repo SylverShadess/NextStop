@@ -698,8 +698,15 @@ def user_tests_command(type):
     else:
         sys.exit(pytest.main(["-k", "App"]))
     
+@test.command("journey", help="Run Journey tests")
+@click.argument("type", default="all")
+def journey_tests_command(type):
+    if type == "unit":
+        sys.exit(pytest.main(["-k", "JourneyUnitTests"]))
+    elif type == "int":
+        sys.exit(pytest.main(["-k", "JourneyIntegrationTests"]))
+    else:
+        sys.exit(pytest.main(["-k", "App"]))
 
 app.cli.add_command(test)
-
-# Add the seed command group to the app
 app.cli.add_command(seed_cli)

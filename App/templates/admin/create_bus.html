@@ -1,0 +1,38 @@
+{% extends "layout.html" %}
+{% block title %}Create Bus{% endblock %}
+{% block page %}Admin - Create Bus{% endblock %}
+
+{{ super() }}
+
+{% block content %}
+<div class="container">
+  <div class="row">
+    <div class="col s12">
+      <h5 class="center-align">Create New Bus</h5>
+      
+      <div class="card-panel">
+        <form action="{{ url_for('admin_views.create_bus') }}" method="POST">
+          <div class="input-field">
+            <input type="text" id="plate_num" name="plate_num" value="BBD001" required>
+            <label for="plate_num">Plate Number</label>
+          </div>
+          
+          <div class="input-field">
+            <input type="number" id="max_passenger_count" name="max_passenger_count" min="12" max="100" value="50" required>
+            <label for="max_passenger_count">Maximum Passenger Capacity</label>
+          </div>
+          
+          <div class="center-align">
+            <button type="submit" class="btn waves-effect waves-light purple">
+              <i class="material-icons left">directions_bus</i>Create Bus
+            </button>
+            <a href="{{ url_for('admin_views.admin_index') }}" class="btn waves-effect waves-light grey">
+              <i class="material-icons left">arrow_back</i>Back
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} 

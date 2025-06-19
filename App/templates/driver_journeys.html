@@ -10,6 +10,46 @@
     <div class="col s12">
       <h5 class="center-align">Your Journeys</h5>
       
+      <!-- Bus Assignment Section -->
+      {% if not driver_bus %}
+        <div class="card-panel">
+          <h6 class="center-align">You don't have a bus assigned yet</h6>
+          {% if available_buses %}
+            <form action="{{ url_for('journey_views.assign_bus_to_driver') }}" method="POST">
+              <div class="input-field">
+                <select name="bus_id" id="bus_selector" required>
+                  <option value="" disabled selected>Choose a bus</option>
+                  {% for bus in available_buses %}
+                    <option value="{{ bus.id }}">{{ bus.plate_num }} ({{ bus.max_passenger_count }} seats)</option>
+                  {% endfor %}
+                </select>
+                <label for="bus_selector">Available Buses</label>
+              </div>
+              <div class="center-align">
+                <button type="submit" class="btn waves-effect waves-light purple">
+                  <i class="material-icons left">directions_bus</i>Assign Bus
+                </button>
+              </div>
+            </form>
+          {% else %}
+            <p class="center-align">No buses are available for assignment. Please contact an administrator.</p>
+          {% endif %}
+        </div>
+      {% else %}
+        <div class="card-panel">
+          <h6 class="center-align">Your Assigned Bus</h6>
+          <p class="center-align">
+            Bus Number: <strong>{{ driver_bus.plate_num }}</strong><br>
+            Capacity: {{ driver_bus.max_passenger_count }} seats<br>
+            {% if driver_bus.route %}
+              Current Route: {{ driver_bus.route.name }}
+            {% else %}
+              No route assigned
+            {% endif %}
+          </p>
+        </div>
+      {% endif %}
+      
       <!-- Create New Journey Button -->
       <div class="center-align" style="margin: 20px 0;">
         <a href="{{ url_for('journey_views.new_journey_page') }}" class="btn waves-effect waves-light purple">
@@ -55,4 +95,12 @@
     </div>
   </div>
 </div>
+
+<!-- Initialize Select Dropdown -->
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    var elems = document.querySelectorAll('select');
+    var instances = M.FormSelect.init(elems);
+  });
+</script>
 {% endblock %} 

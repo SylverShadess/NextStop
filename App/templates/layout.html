@@ -19,7 +19,12 @@
                   {% if is_authenticated %}
         <!-- Dropdown Structure -->
         <ul id="dropdown1" class="dropdown-content">
+          {% if current_user.is_admin %}
+          <li><a href="{{ url_for('admin_views.admin_index') }}">Admin Dashboard</a></li>
+          <li><a href="{{ url_for('admin_views.create_bus') }}">Add A Bus</a></li>
+          {% else %}
           <li><a href="{{ url_for('journey_views.driver_journeys_page') }}">My Journeys</a></li>
+          {% endif %}
           <li class="divider"></li>
           <li><a href="/logout">Logout</a></li>
               </ul>
@@ -29,7 +34,12 @@
         
         <!-- Desktop Nav Menu -->
         <ul id="nav-mobile" class="right hide-on-med-and-down">
+          {% if current_user.is_admin %}
+          <li><a href="{{ url_for('admin_views.admin_index') }}">Admin Dashboard</a></li>
+          <li><a href="{{ url_for('admin_views.create_bus') }}">Add A Bus</a></li>
+          {% else %}
           <li><a href="{{ url_for('journey_views.driver_journeys_page') }}">My Journeys</a></li>
+          {% endif %}
                 <li><a href="/logout">Logout</a></li>
               </ul>
               {% else %}
@@ -54,7 +64,12 @@
           <a href="#"><span class="white-text name">{{ current_user.username }}</span></a>
                   </div>
       </li>
+      {% if current_user.is_admin %}
+      <li><a href="{{ url_for('admin_views.admin_index') }}"><i class="material-icons">dashboard</i>Admin Dashboard</a></li>
+      <li><a href="{{ url_for('admin_views.create_bus') }}"><i class="material-icons">directions_bus</i>Add A Bus</a></li>
+      {% else %}
       <li><a href="{{ url_for('journey_views.driver_journeys_page') }}"><i class="material-icons">directions_bus</i>My Journeys</a></li>
+      {% endif %}
       <li><div class="divider"></div></li>
       <li><a href="/logout"><i class="material-icons">exit_to_app</i>Logout</a></li>
     </ul>
@@ -69,7 +84,7 @@
           <div class="row">
             <div class="input-field col s12">
               <i class="material-icons prefix">account_circle</i>
-              <input id="username" name="username" type="text" class="validate" value="driver1" required>
+              <input id="username" name="username" type="text" class="validate" value="Jerry" required>
               <label for="username">Username</label>
             </div>
           </div>

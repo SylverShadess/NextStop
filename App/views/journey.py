@@ -45,7 +45,16 @@ def driver_journeys_page():
             return redirect(url_for('index_views.index_page'))
         
         journeys = Journey.get_journeys_for_driver(user.id)
-        return render_template('driver_journeys.html', journeys=journeys)
+        
+        # Check if the driver has a bus assigned
+        driver_bus = Bus.query.filter_by(driver_id=user.id).first()
+        
+        # If no bus is assigned, get available buses (buses without drivers)
+        available_buses = []
+        if not driver_bus:
+            available_buses = Bus.query.filter(Bus.driver_id.is_(None)).all()
+        
+        return render_template('driver_journeys.html', journeys=journeys, driver_bus=driver_bus, available_buses=available_buses)
     except Exception as e:
         print(f"Error in driver_journeys_page: {str(e)}")
         flash('An error occurred while loading journeys')
@@ -83,16 +92,15 @@ def create_journey():
         flash('Selected route not found')
         return redirect(url_for('journey_views.new_journey_page'))
     
-    # Get or create a bus for the driver
+    # Get the driver's assigned bus
     bus = Bus.query.filter_by(driver_id=user.id).first()
     if not bus:
-        # Create a new bus for the driver with a default plate number
-        plate_num = f"BUS-{user.id}-{datetime.now().strftime('%Y%m%d')}"
-        bus = Bus(plate_num=plate_num, driver=user, route=route)
-        db.session.add(bus)
-    else:
-        # Update the bus's route
-        bus.selectRoute(route)
+        # If the driver doesn't have a bus, redirect to the journeys page with a message
+        flash('You need to have a bus assigned before starting a journey')
+        return redirect(url_for('journey_views.driver_journeys_page'))
+    
+    # Update the bus's route
+    bus.selectRoute(route)
     
     # Create a new journey
     journey = Journey(driver=user, route=route, bus=bus)
@@ -451,3 +459,40 @@ def journey_stats_page(journey_id):
                               stats=None, 
                               journey=None, 
                               console_log=console_log) 
+
+@journey_views.route('/driver/assign-bus', methods=['POST'])
+@jwt_required()
+def assign_bus_to_driver():
+    try:
+        username = get_jwt_identity()
+        user = User.query.filter_by(username=username).first()
+        if not user:
+            flash('User not found')
+            return redirect(url_for('index_views.index_page'))
+        
+        bus_id = request.form.get('bus_id')
+        if not bus_id:
+            flash('Bus selection is required')
+            return redirect(url_for('journey_views.driver_journeys_page'))
+        
+        # Get the selected bus
+        bus = Bus.query.get(bus_id)
+        if not bus:
+            flash('Selected bus not found')
+            return redirect(url_for('journey_views.driver_journeys_page'))
+        
+        # Check if bus is already assigned
+        if bus.driver_id is not None:
+            flash('This bus is already assigned to another driver')
+            return redirect(url_for('journey_views.driver_journeys_page'))
+        
+        # Assign the bus to the driver
+        bus.driver = user
+        db.session.commit()
+        
+        flash(f'Bus {bus.plate_num} has been assigned to you')
+        return redirect(url_for('journey_views.driver_journeys_page'))
+    except Exception as e:
+        print(f"Error in assign_bus_to_driver: {str(e)}")
+        flash('An error occurred while assigning the bus')
+        return redirect(url_for('journey_views.driver_journeys_page')) 
