@@ -1,12 +1,17 @@
-from .user import create_user
 from App.database import db
-from App.models.User import User, Driver
-from App.models.Journey import Journey
+from App.models import User
+from App.models.User import Driver
+from App.models.Area import Area
 from App.models.Route import Route
 from App.models.Location import Location, LocationType
-from App.models.Bus import Bus
-from App.models.Area import Area
 from App.models.RouteStop import RouteStop
+from App.models.Bus import Bus
+from App.models.Journey import Journey
+from App.models.JourneyEvent import JourneyEvent
+from App.models.BoardEvent import BoardEvent
+from App.models.Schedule import Schedule
+from datetime import datetime, timedelta
+from .user import create_user
 
 def initialize():
     db.drop_all()
@@ -99,7 +104,95 @@ def create_demo_data():
     
     db.session.add_all([bus1, bus2, bus3])
     db.session.commit()
+
+    now = datetime.utcnow()
     
+    # Route 1 schedules - San Fernando to Port of Spain
+    sched1 = Schedule(stop=san_fernando_terminal, route=route1, 
+                     arrivalTime=now, 
+                     departureTime=now + timedelta(minutes=5))
+    
+    sched2 = Schedule(stop=couva_stop, route=route1, 
+                     arrivalTime=now + timedelta(minutes=15), 
+                     departureTime=now + timedelta(minutes=17))
+    
+    sched3 = Schedule(stop=chaguanas_stop, route=route1, 
+                     arrivalTime=now + timedelta(minutes=35), 
+                     departureTime=now + timedelta(minutes=37))
+    
+    sched4 = Schedule(stop=port_of_spain_terminal, route=route1, 
+                     arrivalTime=now + timedelta(minutes=55), 
+                     departureTime=now + timedelta(minutes=57))
+    
+    # Route 2 schedules - San Fernando to UWI/St. Augustine
+    sched5 = Schedule(stop=san_fernando_terminal, route=route2, 
+                     arrivalTime=now + timedelta(minutes=10), 
+                     departureTime=now + timedelta(minutes=15))
+    
+    sched6 = Schedule(stop=couva_stop, route=route2, 
+                     arrivalTime=now + timedelta(minutes=35), 
+                     departureTime=now + timedelta(minutes=37))
+    
+    sched7 = Schedule(stop=chaguanas_stop, route=route2, 
+                     arrivalTime=now + timedelta(minutes=55), 
+                     departureTime=now + timedelta(minutes=57))
+    
+    sched8 = Schedule(stop=uwi_stop, route=route2, 
+                     arrivalTime=now + timedelta(minutes=75), 
+                     departureTime=now + timedelta(minutes=77))
+    
+    db.session.add_all([sched1, sched2, sched3, sched4, sched5, sched6, sched7, sched8])
+    db.session.commit()
+
+    journey2_start = now - timedelta(minutes=50)  # Journey in progress on route 2
+    journey2 = Journey(driver=driver2, route=route2, bus=bus2, startTime=journey2_start)
+
+    db.session.add(journey2)
+    db.session.commit()
+
+    # Journey 2 events - San Fernando to UWI/St. Augustine (Eastern route)
+    # Starting at San Fernando Terminal
+    je1 = JourneyEvent(journey=journey2, lat=10.2836855, lng=-61.4682742)  # San Fernando Terminal
+    
+    # Moving north through Marabella, onto the highway
+    je2 = JourneyEvent(journey=journey2, lat=10.3119, lng=-61.4564)  # Passing Marabella
+    je3 = JourneyEvent(journey=journey2, lat=10.3456, lng=-61.4412)  # Approaching Gasparillo
+    
+    # Approaching Couva
+    je4 = JourneyEvent(journey=journey2, lat=10.3921, lng=-61.4231)  # Near Preysal
+    je5 = JourneyEvent(journey=journey2, lat=10.4173997, lng=-61.4177743)  # At Couva Stop
+    
+    # Moving toward Chaguanas
+    je6 = JourneyEvent(journey=journey2, lat=10.4512, lng=-61.4138)  # Between Couva and Chaguanas
+    je7 = JourneyEvent(journey=journey2, lat=10.4863, lng=-61.4102)  # Approaching Chaguanas
+    je8 = JourneyEvent(journey=journey2, lat=10.5152464, lng=-61.4079954)  # At Chaguanas Stop
+    
+    # Moving toward UWI/St. Augustine
+    je9 = JourneyEvent(journey=journey2, lat=10.5487, lng=-61.3987)  # East of Chaguanas
+    je10 = JourneyEvent(journey=journey2, lat=10.5912, lng=-61.3921)  # Approaching Curepe
+    je11 = JourneyEvent(journey=journey2, lat=10.6231, lng=-61.3954)  # Near St. Augustine
+    
+    db.session.add_all([je1, je2, je3, je4, je5, je6, je7, je8, je9, je10, je11])
+    db.session.commit()
+
+    be1 = BoardEvent(journey=journey2, event_type="Enter", qty=15, stop=route2_stop1, 
+                    time=journey2_start + timedelta(minutes=5))  # 15 passengers at San Fernando
+    
+    be2 = BoardEvent(journey=journey2, event_type="Exit", qty=2, stop=route2_stop2, 
+                    time=journey2_start + timedelta(minutes=35))  # 2 exit at Couva
+    
+    be3 = BoardEvent(journey=journey2, event_type="Enter", qty=4, stop=route2_stop2, 
+                    time=journey2_start + timedelta(minutes=37))  # 4 enter at Couva
+    
+    be4 = BoardEvent(journey=journey2, event_type="Exit", qty=5, stop=route2_stop3, 
+                    time=journey2_start + timedelta(minutes=55))  # 5 exit at Chaguanas
+    
+    be5 = BoardEvent(journey=journey2, event_type="Enter", qty=8, stop=route2_stop3, 
+                    time=journey2_start + timedelta(minutes=57))  # 8 enter at Chaguanas
+    
+    db.session.add_all([be1, be2, be3, be4, be5])
+    db.session.commit()
+
     # Create admin user
     admin = User("admin", "admin123")
     admin.is_admin = True

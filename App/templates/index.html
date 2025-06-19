@@ -52,7 +52,7 @@
   <!-- Map Card -->
   <div class="row">
     <div class="col s12">
-      <div class="card">
+      <div class="card" id="map-card">
         <div class="card-content">
           <span class="card-title center-align">Route Map</span>
           <div id="map" style="height: 400px; width: 100%;">
@@ -146,6 +146,26 @@
       
       // Check OpenRouteService API status
       checkOrsApiStatus();
+      
+      // Check URL parameters for route_id and scroll_to_map
+      const urlParams = new URLSearchParams(window.location.search);
+      const routeId = urlParams.get('route_id');
+      const scrollToMap = urlParams.get('scroll_to_map');
+      
+      if (routeId) {
+        // Scroll to map first if requested
+        if (scrollToMap === 'true') {
+          document.getElementById('map-card').scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+          });
+        }
+        
+        // Preview the route from URL parameter after a short delay
+        setTimeout(() => {
+          previewRoute(routeId);
+        }, 300);
+      }
     });
     
     /* Initialize stop search functionality */
@@ -183,20 +203,29 @@
                 item.addEventListener('click', function(e) {
                   e.preventDefault();
                   
-                  // Center map on selected stop
-                  map.setView([stop.lat, stop.lng], 15);
-                  
-                  // Add marker for the stop
-                  markersLayer.clearLayers();
-                  const marker = L.marker([stop.lat, stop.lng])
-                    .bindPopup(`<b>${stop.name}</b><br>${stop.type}`)
-                    .addTo(markersLayer);
-                  
-                  marker.openPopup();
-                  
                   // Clear search
                   searchInput.value = '';
                   searchResults.style.display = 'none';
+                  
+                  // Scroll to map first
+                  document.getElementById('map-card').scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                  });
+                  
+                  // Wait a moment then center map on selected stop
+                  setTimeout(() => {
+                    // Center map on selected stop
+                    map.setView([stop.lat, stop.lng], 15);
+                    
+                    // Add marker for the stop
+                    markersLayer.clearLayers();
+                    const marker = L.marker([stop.lat, stop.lng])
+                      .bindPopup(`<b>${stop.name}</b><br>${stop.type}`)
+                      .addTo(markersLayer);
+                    
+                    marker.openPopup();
+                  }, 300);
                 });
                 
                 searchResults.appendChild(item);
@@ -223,6 +252,12 @@
     /* Preview the selected route on the map using OpenRouteService for realistic paths */
     function previewRoute(routeId) {
       currentRouteId = routeId;
+      
+      // Scroll to the map section first
+      document.getElementById('map-card').scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+      });
       
       // Clear previous layers
       routeLayer.clearLayers();
