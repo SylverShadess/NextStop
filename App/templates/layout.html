@@ -14,7 +14,7 @@
     <!-- Navigation -->
       <nav class="purple">
           <div class="nav-wrapper">
-        <a href="/" class="brand-logo center">{% block page %}{% endblock %}</a>
+        <a href="/" class="brand-logo center truncate" style="max-width: 60%; left: 20%;">{% block page %}{% endblock %}</a>
         
                   {% if is_authenticated %}
         <!-- Dropdown Structure -->
@@ -109,7 +109,7 @@
     {% endif %}
 
     <!-- Main Content -->
-    <div class="container" id="content">{% block content %}{% endblock %}</div>
+    <div id="content">{% block content %}{% endblock %}</div>
 
     <!-- Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
