@@ -29,6 +29,7 @@
                   From: {{ journey.route.start_area.name }}<br>
                   To: {{ journey.route.end_area.name }}<br>
                   Started: {{ journey.startTime.strftime('%d-%m-%Y %H:%M') }}<br>
+                  {% if journey.endTime %} Ended: {{ journey.endTime.strftime('%d-%m-%Y %H:%M') }}<br> {% endif %}
                   Status: {% if journey.endTime %}Completed{% else %}In Progress{% endif %}
                 </p>
                 <div class="secondary-content">

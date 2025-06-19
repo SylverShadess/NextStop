@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from flask_jwt_extended import jwt_required, current_user, get_jwt_identity
 from datetime import datetime
 import math
+import json
 
 from App.controllers.journey import (
     get_journey_stats, 
@@ -345,14 +346,67 @@ def journey_stats_page(journey_id):
             return redirect(url_for('journey_views.driver_journeys_page'))
         
         # Get journey stats
-        stats = get_journey_stats(journey_id)
+        try:
+            stats = get_journey_stats(journey_id)
+            
+            if not stats:
+                error_msg = 'Journey stats not found'
+                flash(error_msg)
+                # Add console logging script
+                console_log = f"""
+                <script>
+                console.error("Journey stats error: {error_msg}");
+                </script>
+                """
+                return render_template('journey_stats.html', 
+                                      stats=None, 
+                                      journey=journey, 
+                                      console_log=console_log)
+        except Exception as stats_error:
+            error_msg = f"Error getting journey stats: {str(stats_error)}"
+            print(error_msg)
+            # Add console logging script with detailed error
+            console_log = f"""
+            <script>
+            console.error("Journey stats error: {error_msg}");
+            </script>
+            """
+            flash('An error occurred while loading journey stats')
+            return render_template('journey_stats.html', 
+                                  stats=None, 
+                                  journey=journey, 
+                                  console_log=console_log)
         
-        if not stats:
-            flash('Journey stats not found')
-            return redirect(url_for('journey_views.driver_journeys_page'))
+        # Ensure all required fields are present to avoid template errors
+        required_fields = ['journey_id', 'route_name', 'start_time', 'end_time', 
+                          'duration', 'total_passengers', 'revenue', 'stop_delays']
         
-        return render_template('journey_stats.html', stats=stats, journey=journey)
+        for field in required_fields:
+            if field not in stats:
+                stats[field] = None if field == 'end_time' else ([] if field == 'stop_delays' else "Unknown")
+        
+        # Add debug information to console
+        console_log = f"""
+        <script>
+        console.log("Journey stats loaded successfully:", {json.dumps(stats)});
+        </script>
+        """
+        
+        return render_template('journey_stats.html', 
+                              stats=stats, 
+                              journey=journey,
+                              console_log=console_log)
     except Exception as e:
-        print(f"Error in journey_stats_page: {str(e)}")
+        error_msg = f"Error in journey_stats_page: {str(e)}"
+        print(error_msg)
+        # Add console logging script with detailed error
+        console_log = f"""
+        <script>
+        console.error("Journey stats page error: {error_msg}");
+        </script>
+        """
         flash('An error occurred while loading journey stats')
-        return redirect(url_for('journey_views.driver_journeys_page')) 
+        return render_template('journey_stats.html', 
+                              stats=None, 
+                              journey=None, 
+                              console_log=console_log) 

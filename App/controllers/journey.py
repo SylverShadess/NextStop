@@ -4,14 +4,89 @@ from App.models.BoardEvent import BoardEvent, BoardType
 from App.models.RouteStop import RouteStop
 from App.database import db
 from datetime import datetime
+import traceback
+import sys
 
 def get_journey_stats(journey_id):
-    journey = Journey.query.get(journey_id)
-    
-    if not journey:
-        return None
-    
-    return journey.getStats()
+    try:
+        # Debug output
+        print(f"Fetching journey stats for journey_id: {journey_id}")
+        
+        journey = Journey.query.get(journey_id)
+        
+        if not journey:
+            print(f"Journey with ID {journey_id} not found")
+            return None
+        
+        print(f"Journey found: {journey.id}, route: {journey.route_id if journey.route else 'None'}")
+        
+        try:
+            # Try to access relationships to see if they're loaded correctly
+            if journey.route:
+                print(f"Route name: {journey.route.name}")
+            else:
+                print("Route is None")
+                
+            if journey.driver:
+                print(f"Driver username: {journey.driver.username}")
+            else:
+                print("Driver is None")
+                
+            if journey.bus:
+                print(f"Bus plate: {journey.bus.plate_num}")
+            else:
+                print("Bus is None")
+                
+            # Get board events for debugging
+            board_events = BoardEvent.query.filter(
+                BoardEvent.journey_id == journey.id
+            ).all()
+            print(f"Found {len(board_events)} board events")
+            
+            # Get journey stats
+            stats = journey.getStats()
+            
+            # Check if there was an error in getStats
+            if 'error' in stats:
+                print(f"Error in getStats for journey {journey_id}: {stats['error']}")
+                # Remove the error message from the stats before returning
+                error_msg = stats.pop('error', None)
+            
+            return stats
+        except Exception as inner_e:
+            print(f"Error accessing journey relationships: {str(inner_e)}")
+            # Print full traceback for debugging
+            traceback.print_exc(file=sys.stdout)
+            
+            # Return a minimal stats object
+            return {
+                'journey_id': journey_id,
+                'route_name': journey.route.name if journey.route else "Unknown",
+                'start_time': journey.startTime.isoformat() if hasattr(journey, 'startTime') else "Unknown",
+                'end_time': journey.endTime.isoformat() if hasattr(journey, 'endTime') and journey.endTime else None,
+                'duration': "Unknown",
+                'total_passengers': 0,
+                'revenue': 0,
+                'stop_delays': [],
+                'error_details': str(inner_e)
+            }
+    except Exception as e:
+        print(f"Error getting journey stats for journey {journey_id}: {str(e)}")
+        # Print full traceback for debugging
+        traceback.print_exc(file=sys.stdout)
+        
+        # Return a minimal stats object that won't cause template rendering errors
+        return {
+            'journey_id': journey_id,
+            'route_name': "Unknown",
+            'start_time': "Unknown",
+            'end_time': None,
+            'duration': "Unknown",
+            'total_passengers': 0,
+            'revenue': 0,
+            'stop_delays': [],
+            'error_details': str(e)
+        }
 
 def create_journey_board_event(journey_id, event_type, qty, stop_id):
     try:
