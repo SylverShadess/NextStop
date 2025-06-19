@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, jsonify, request, flash, send_from_directory, flash, redirect, url_for
 from flask_jwt_extended import jwt_required, current_user, unset_jwt_cookies, set_access_cookies, get_jwt_identity
+from flask_jwt_extended.exceptions import NoAuthorizationError, InvalidHeaderError, JWTExtendedException
 
 from App.models import User, Driver
 
@@ -13,6 +14,27 @@ from App.controllers.auth import (
 )
 
 auth_views = Blueprint('auth_views', __name__, template_folder='../templates')
+
+@auth_views.errorhandler(NoAuthorizationError)
+def handle_auth_error(e):
+    flash('Your session has expired. Please log in again.')
+    response = redirect(url_for('index_views.index_page'))
+    unset_jwt_cookies(response)
+    return response
+
+@auth_views.errorhandler(InvalidHeaderError)
+def handle_invalid_header_error(e):
+    flash('Invalid authentication token. Please log in again.')
+    response = redirect(url_for('index_views.index_page'))
+    unset_jwt_cookies(response)
+    return response
+
+@auth_views.errorhandler(JWTExtendedException)
+def handle_jwt_extended_error(e):
+    flash('Authentication error. Please log in again.')
+    response = redirect(url_for('index_views.index_page'))
+    unset_jwt_cookies(response)
+    return response
 
 '''
 Page/Action Routes

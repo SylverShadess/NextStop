@@ -1,6 +1,6 @@
 from math import floor
 from App.database import db
-from datetime import datetime
+from datetime import datetime, time
 from .BoardEvent import BoardEvent
 from .JourneyEvent import JourneyEvent
 from .Route import Route
@@ -123,71 +123,171 @@ class Journey(db.Model):
         return int((self.current_stop_index / (total_stops - 1)) * 100) if total_stops > 1 else 100
     
     def getStats(self):
-        # Get all board events for this journey during the journey timeframe
-        board_events = BoardEvent.query.filter(
-            BoardEvent.journey_id == self.id,
-            BoardEvent.time >= self.startTime,
-            BoardEvent.time <= (self.endTime or datetime.utcnow())
-        ).all()
-        
-        # Calculate passenger statistics
-        total_entries = 0
-        total_exits = 0
-        
-        for event in board_events:
-            if event.type == "Enter":
-                total_entries += event.qty
-            elif event.type == "Exit":
-                total_exits += event.qty
-        
-        # Calculate revenue based on route cost and passengers
-        revenue = total_entries * self.route.cost if self.route else 0
-        
-        # Calculate journey duration
-        if self.endTime:
-            minutes = (self.endTime - self.startTime).total_seconds() // 60  
-            seconds = (self.endTime - self.startTime).total_seconds() % 60
-            duration = f"{int(minutes)}m {int(floor(seconds))}s"
-        else:
-            minutes = (datetime.utcnow() - self.startTime).total_seconds() // 60  
-            seconds = (datetime.utcnow() - self.startTime).total_seconds() % 60
-            duration = f"{int(minutes)}m {int(floor(seconds))}s"
-        
-        # Get stop delays - comparing actual arrival times with scheduled times
-        stop_delays = []
-        if self.route and self.route.stops:
-            for route_stop in self.route.stops:
-                # Find board events at this stop
-                stop_events = [e for e in board_events if e.stop_id == route_stop.id]
-                if stop_events:
-                    # Get the first arrival at this stop
-                    arrival_time = min(e.time for e in stop_events)
-                    
-                    # Get scheduled time if available
-                    location = route_stop.location if hasattr(route_stop, 'location') else None
-                    if location:
-                        schedule = location.getSchedule(self.route_id)
-                        if schedule:
-                            # Calculate delay in minutes
-                            scheduled_time = schedule.arrivalTime
-                            delay = (arrival_time - scheduled_time).total_seconds() / 60
-                            stop_delays.append({
-                                'stop_name': location.name,
-                                'scheduled_time': scheduled_time.isoformat(),
-                                'actual_time': arrival_time.isoformat(),
-                                'delay_minutes': round(delay, 2)
-                            })
-        
-        return {
-            'journey_id': self.id,
-            'route_name': self.route.name if self.route else None,
-            'start_time': self.startTime.isoformat(),
-            'end_time': self.endTime.isoformat() if self.endTime else None,
-            'duration': duration,
-            'total_passengers': total_entries,
-            'revenue': revenue,
-            'stop_delays': stop_delays
-        }
+        try:
+            print(f"Starting getStats for journey {self.id}")
+            
+            # Get all board events for this journey during the journey timeframe
+            board_events = BoardEvent.query.filter(
+                BoardEvent.journey_id == self.id,
+                BoardEvent.time >= self.startTime,
+                BoardEvent.time <= (self.endTime or datetime.utcnow())
+            ).all()
+            
+            print(f"Found {len(board_events)} board events")
+            
+            # Calculate passenger statistics
+            total_entries = 0
+            total_exits = 0
+            
+            for event in board_events:
+                if event.type == "Enter":
+                    total_entries += event.qty
+                elif event.type == "Exit":
+                    total_exits += event.qty
+            
+            print(f"Calculated passengers: {total_entries} entries, {total_exits} exits")
+            
+            # Calculate revenue based on route cost and passengers
+            if not self.route:
+                print("Route is None, cannot calculate revenue")
+                revenue = 0
+            else:
+                if not hasattr(self.route, 'cost'):
+                    print("Route has no cost attribute")
+                    revenue = 0
+                else:
+                    revenue = total_entries * self.route.cost
+                    print(f"Calculated revenue: {revenue}")
+            
+            # Calculate journey duration
+            duration = "Unknown"
+            try:
+                if self.endTime:
+                    minutes = (self.endTime - self.startTime).total_seconds() // 60  
+                    seconds = (self.endTime - self.startTime).total_seconds() % 60
+                    duration = f"{int(minutes)}m {int(floor(seconds))}s"
+                else:
+                    minutes = (datetime.utcnow() - self.startTime).total_seconds() // 60  
+                    seconds = (datetime.utcnow() - self.startTime).total_seconds() % 60
+                    duration = f"{int(minutes)}m {int(floor(seconds))}s"
+                print(f"Calculated duration: {duration}")
+            except Exception as duration_error:
+                print(f"Error calculating duration: {str(duration_error)}")
+                duration = "Unknown"
+            
+            # Get stop delays - comparing actual arrival times with scheduled times
+            stop_delays = []
+            
+            # Check if route exists and has stops
+            if not self.route:
+                print("Route is None, cannot get stops")
+            elif not hasattr(self.route, 'stops'):
+                print("Route has no stops attribute")
+            else:
+                print(f"Route has {len(self.route.stops) if self.route.stops else 0} stops")
+                
+                if self.route.stops:
+                    for route_stop in self.route.stops:
+                        try:
+                            # Find board events at this stop
+                            stop_events = [e for e in board_events if e.stop_id == route_stop.id]
+                            if stop_events:
+                                # Get the first arrival at this stop
+                                arrival_time = min(e.time for e in stop_events)
+                                
+                                # Get scheduled time if available
+                                if not hasattr(route_stop, 'location'):
+                                    print(f"RouteStop {route_stop.id} has no location attribute")
+                                    continue
+                                
+                                if not route_stop.location:
+                                    print(f"RouteStop {route_stop.id} location is None")
+                                    continue
+                                
+                                location = route_stop.location
+                                
+                                if not hasattr(location, 'getSchedule'):
+                                    print(f"Location {location.id} has no getSchedule method")
+                                    continue
+                                
+                                schedule = location.getSchedule(self.route_id)
+                                
+                                if not schedule:
+                                    print(f"No schedule found for location {location.id} and route {self.route_id}")
+                                    continue
+                                
+                                if not hasattr(schedule, 'arrivalTime'):
+                                    print(f"Schedule {schedule.id} has no arrivalTime attribute")
+                                    continue
+                                
+                                # Extract time components only for comparison
+                                scheduled_time = schedule.arrivalTime
+                                scheduled_time_of_day = time(
+                                    hour=scheduled_time.hour,
+                                    minute=scheduled_time.minute,
+                                    second=scheduled_time.second
+                                )
+                                
+                                actual_time_of_day = time(
+                                    hour=arrival_time.hour,
+                                    minute=arrival_time.minute,
+                                    second=arrival_time.second
+                                )
+                                
+                                # Calculate delay in minutes based on time of day only
+                                # Convert both times to seconds since midnight
+                                scheduled_seconds = scheduled_time_of_day.hour * 3600 + scheduled_time_of_day.minute * 60 + scheduled_time_of_day.second
+                                actual_seconds = actual_time_of_day.hour * 3600 + actual_time_of_day.minute * 60 + actual_time_of_day.second
+                                
+                                # Handle case where actual time is on the next day (after midnight)
+                                if actual_seconds < scheduled_seconds:
+                                    actual_seconds += 24 * 3600  # Add a full day in seconds
+                                
+                                delay_seconds = actual_seconds - scheduled_seconds
+                                delay_minutes = delay_seconds / 60
+                                
+                                stop_delays.append({
+                                    'stop_name': location.name,
+                                    'scheduled_time': scheduled_time_of_day.strftime('%H:%M:%S'),
+                                    'actual_time': actual_time_of_day.strftime('%H:%M:%S'),
+                                    'delay_minutes': round(delay_minutes, 2)
+                                })
+                                print(f"Added delay for stop {location.name}: {round(delay_minutes, 2)} minutes")
+                        except Exception as stop_error:
+                            print(f"Error processing stop delay for stop {route_stop.id}: {str(stop_error)}")
+                            # Continue with the next stop instead of failing completely
+                            continue
+            
+            print("Successfully generated stats")
+            
+            return {
+                'journey_id': self.id,
+                'route_name': self.route.name if self.route and hasattr(self.route, 'name') else "Unknown",
+                'start_time': self.startTime.isoformat(),
+                'end_time': self.endTime.isoformat() if self.endTime else None,
+                'duration': duration,
+                'total_passengers': total_entries,
+                'revenue': revenue,
+                'stop_delays': stop_delays
+            }
+        except Exception as e:
+            import traceback
+            import sys
+            print(f"Error generating journey stats for journey {self.id}: {str(e)}")
+            traceback.print_exc(file=sys.stdout)
+            
+            # Return a basic set of stats if there's an error
+            return {
+                'journey_id': self.id,
+                'route_name': self.route.name if hasattr(self, 'route') and self.route and hasattr(self.route, 'name') else "Unknown",
+                'start_time': self.startTime.isoformat() if hasattr(self, 'startTime') else "Unknown",
+                'end_time': self.endTime.isoformat() if hasattr(self, 'endTime') and self.endTime else None,
+                'duration': "Unknown",
+                'total_passengers': 0,
+                'revenue': 0,
+                'stop_delays': [],
+                'error': str(e)
+            }
     
     def get_json(self):
         return {

@@ -1,5 +1,6 @@
-from flask import jsonify, session
+from flask import jsonify, session, redirect, url_for, render_template
 from flask_jwt_extended import create_access_token, jwt_required, JWTManager, get_jwt_identity, verify_jwt_in_request, current_user
+from flask_jwt_extended.exceptions import NoAuthorizationError, InvalidHeaderError, JWTExtendedException
 
 from App.models import User
 
@@ -62,6 +63,18 @@ def setup_jwt(app):
                 'user_id': user.id
             }
         return {}
+    
+    @jwt.expired_token_loader
+    def expired_token_callback(jwt_header, jwt_payload):
+        return render_template('401.html', error_message="Token has expired"), 401
+    
+    @jwt.invalid_token_loader
+    def invalid_token_callback(error):
+        return render_template('401.html', error_message="Invalid token"), 401
+    
+    @jwt.unauthorized_loader
+    def missing_token_callback(error):
+        return render_template('401.html', error_message="Missing JWT in cookies or headers"), 401
         
     return jwt
 

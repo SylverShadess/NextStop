@@ -1,7 +1,9 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from flask_jwt_extended import jwt_required, current_user, get_jwt_identity
-from datetime import datetime
+from flask_jwt_extended.exceptions import NoAuthorizationError, InvalidHeaderError, JWTExtendedException
+from datetime import datetime, time
 import math
+import json
 
 from App.controllers.journey import (
     get_journey_stats, 
@@ -17,6 +19,18 @@ from App.models import Journey, Bus, Route, RouteStop, User, Driver
 from App.database import db
 
 journey_views = Blueprint('journey_views', __name__, template_folder='../templates')
+
+@journey_views.errorhandler(NoAuthorizationError)
+def handle_auth_error(e):
+    return render_template('401.html', error_message="Token has expired"), 401
+
+@journey_views.errorhandler(InvalidHeaderError)
+def handle_invalid_header_error(e):
+    return render_template('401.html', error_message="Invalid token"), 401
+
+@journey_views.errorhandler(JWTExtendedException)
+def handle_jwt_extended_error(e):
+    return render_template('401.html', error_message="Authentication error"), 401
 
 @journey_views.route('/driver/journeys', methods=['GET'])
 @jwt_required()
@@ -345,14 +359,78 @@ def journey_stats_page(journey_id):
             return redirect(url_for('journey_views.driver_journeys_page'))
         
         # Get journey stats
-        stats = get_journey_stats(journey_id)
+        try:
+            stats = get_journey_stats(journey_id)
+            
+            if not stats:
+                error_msg = 'Journey stats not found'
+                flash(error_msg)
+                # Add console logging script
+                console_log = f"""
+                <script>
+                console.error("Journey stats error: {error_msg}");
+                </script>
+                """
+                return render_template('journey_stats.html', 
+                                      stats=None, 
+                                      journey=journey, 
+                                      console_log=console_log)
+        except Exception as stats_error:
+            error_msg = f"Error getting journey stats: {str(stats_error)}"
+            print(error_msg)
+            # Add console logging script with detailed error
+            console_log = f"""
+            <script>
+            console.error("Journey stats error: {error_msg}");
+            </script>
+            """
+            flash('An error occurred while loading journey stats')
+            return render_template('journey_stats.html', 
+                                  stats=None, 
+                                  journey=journey, 
+                                  console_log=console_log)
         
-        if not stats:
-            flash('Journey stats not found')
-            return redirect(url_for('journey_views.driver_journeys_page'))
+        # Ensure all required fields are present to avoid template errors
+        required_fields = ['journey_id', 'route_name', 'start_time', 'end_time', 
+                          'duration', 'total_passengers', 'revenue', 'stop_delays']
         
-        return render_template('journey_stats.html', stats=stats, journey=journey)
+        for field in required_fields:
+            if field not in stats:
+                stats[field] = None if field == 'end_time' else ([] if field == 'stop_delays' else "Unknown")
+        
+        # Ensure stop delays have the correct format (time only)
+        if stats['stop_delays']:
+            for delay in stats['stop_delays']:
+                # Ensure these fields are present and properly formatted
+                if 'scheduled_time' not in delay or not delay['scheduled_time']:
+                    delay['scheduled_time'] = "00:00:00"
+                if 'actual_time' not in delay or not delay['actual_time']:
+                    delay['actual_time'] = "00:00:00"
+                if 'delay_minutes' not in delay:
+                    delay['delay_minutes'] = 0
+        
+        # Add debug information to console
+        console_log = f"""
+        <script>
+        console.log("Journey stats loaded successfully:", {json.dumps(stats)});
+        </script>
+        """
+        
+        return render_template('journey_stats.html', 
+                              stats=stats, 
+                              journey=journey,
+                              console_log=console_log)
     except Exception as e:
-        print(f"Error in journey_stats_page: {str(e)}")
+        error_msg = f"Error in journey_stats_page: {str(e)}"
+        print(error_msg)
+        # Add console logging script with detailed error
+        console_log = f"""
+        <script>
+        console.error("Journey stats page error: {error_msg}");
+        </script>
+        """
         flash('An error occurred while loading journey stats')
-        return redirect(url_for('journey_views.driver_journeys_page')) 
+        return render_template('journey_stats.html', 
+                              stats=None, 
+                              journey=None, 
+                              console_log=console_log) 
