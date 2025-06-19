@@ -4,6 +4,7 @@ from flask_jwt_extended.exceptions import NoAuthorizationError, InvalidHeaderErr
 from datetime import datetime, time
 import math
 import json
+import json
 
 from App.controllers.journey import (
     get_journey_stats, 
@@ -420,6 +421,10 @@ def journey_stats_page(journey_id):
                               stats=stats, 
                               journey=journey,
                               console_log=console_log)
+        return render_template('journey_stats.html', 
+                              stats=stats, 
+                              journey=journey,
+                              console_log=console_log)
     except Exception as e:
         error_msg = f"Error in journey_stats_page: {str(e)}"
         print(error_msg)
@@ -429,7 +434,19 @@ def journey_stats_page(journey_id):
         console.error("Journey stats page error: {error_msg}");
         </script>
         """
+        error_msg = f"Error in journey_stats_page: {str(e)}"
+        print(error_msg)
+        # Add console logging script with detailed error
+        console_log = f"""
+        <script>
+        console.error("Journey stats page error: {error_msg}");
+        </script>
+        """
         flash('An error occurred while loading journey stats')
+        return render_template('journey_stats.html', 
+                              stats=None, 
+                              journey=None, 
+                              console_log=console_log) 
         return render_template('journey_stats.html', 
                               stats=None, 
                               journey=None, 
